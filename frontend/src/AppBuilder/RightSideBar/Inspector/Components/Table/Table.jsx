@@ -24,6 +24,7 @@ import { getColumnIcon } from './utils';
 import { getSafeRenderableValue } from '@/AppBuilder/Widgets/utils';
 import { useColumnManager, useActionButtonManager, usePopoverState } from './hooks';
 import { AddNewRowConfig } from './AddNewRowConfig/AddNewRowConfig';
+import { DefaultFiltersConfig } from './DefaultFiltersConfig/DefaultFiltersConfig';
 import { resolveAddNewRowIn } from '@/AppBuilder/Widgets/NewTable/_utils/addNewRowConfig';
 import useStore from '@/AppBuilder/_stores/store';
 import { shallow } from 'zustand/shallow';
@@ -387,6 +388,15 @@ export const Table = (props) => {
     [component, paramUpdated]
   );
 
+  const defaultFilters = component.component.definition.properties.defaultFilters?.value;
+  const serverSideFilter =
+    resolveReferences(component.component.definition.properties.serverSideFilter?.value) ?? false;
+
+  const handleFilterConfigChange = useCallback(
+    (name, value) => paramUpdated({ name, ...component.component.properties?.[name] }, 'value', value, 'properties'),
+    [component, paramUpdated]
+  );
+
   const displayServerSideSearch = useMemo(
     () => resolveReferences(component.component.definition.properties.displaySearchBox?.value) ?? false,
     [component.component.definition.properties.displaySearchBox?.value]
@@ -467,9 +477,8 @@ export const Table = (props) => {
       'enabledSort',
       ...(enabledSort ? ['serverSideSort'] : []),
       'showFilterButton',
-      ...(displayServerSideFilter ? ['serverSideFilter'] : []),
     ],
-    [displayServerSideSearch, enabledSort, displayServerSideFilter]
+    [displayServerSideSearch, enabledSort]
   );
 
   const paginationOptions = useMemo(
@@ -756,7 +765,21 @@ export const Table = (props) => {
       // Search, sort and filter section
       {
         title: 'Search, sort and filter',
-        children: searchSortFilterOptions.map((option) => renderCustomElement(option)),
+        children: searchSortFilterOptions.map((option) =>
+          renderCustomElement(
+            option,
+            'properties',
+            option === 'showFilterButton' && displayServerSideFilter ? (
+              <DefaultFiltersConfig
+                columns={columns}
+                defaultFilters={defaultFilters}
+                serverSideFilter={serverSideFilter}
+                darkMode={darkMode}
+                onChange={handleFilterConfigChange}
+              />
+            ) : null
+          )
+        ),
       },
       // Pagination section
       {
@@ -854,6 +877,10 @@ export const Table = (props) => {
       allowAddingMultipleRows,
       addNewRowColumns,
       handleAddNewRowConfigChange,
+      displayServerSideFilter,
+      defaultFilters,
+      serverSideFilter,
+      handleFilterConfigChange,
     ]
   );
 
